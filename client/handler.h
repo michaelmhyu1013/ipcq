@@ -24,6 +24,6 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 
-int manage_client_process(key_t msg_queue_key, int msq_id, struct msqid_ds *msq_status, struct my_msg *connect_msg);
+int manage_client_process(key_t msg_queue_key, int msq_id, int sem_id, struct msqid_ds *msq_status, struct my_msg *connect_msg);
 
 #endif

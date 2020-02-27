@@ -6,46 +6,45 @@
 #include <unistd.h>
 #include <string.h>
 
+#include "handler.h"
+#include "io.h"
 #include "message.h"
 #include "server.h"
-#include "io.h"
-#include "handler.h"
+#include "semaphore.h"
 
 int main(int argc, char *argv[])
 {
     key_t msg_queue_key;
     struct msqid_ds msq_status;
     struct my_msg rmsg;
-    int msq_id;
-    pid_t client_handler_pid;
+    int msq_id, sem_id;
+    pid_t client_handler_pid = 0;
 
     system("touch msgqueue.txt");
     if ((msg_queue_key = ftok("msgqueue.txt", 'B')) == -1)
     {
-        perror("ftok");
-        exit(1);
+        fatal("ftok");
     }
-
     if ((msq_id = msgget(msg_queue_key, IPC_CREAT | 0660)) < 0)
     {
-        perror("msgget failed!");
-        exit(2);
+        fatal("msgget failed!");
     }
 
-    /*--- get status info -----------------*/
-    if (msgctl(msq_id, IPC_STAT, &msq_status) == -1)
+    sem_id = initsem((key_t)SEM_ACCESS_MQ);
+    if (semctl(sem_id, 0, SETVAL, 0) < 0)
     {
-        perror("msgctl (get status)failed!");
-        exit(3);
+        fatal("semctl failed");
     }
-    mqstat_print(msg_queue_key, msq_id, &msq_status);
+    signal(sem_id);
 
+    printf("Awaiting incoming message...\n");
     server(msg_queue_key, client_handler_pid, msq_id, &rmsg);
 
     if (client_handler_pid == 0)
     {
         printf("Child handler spawned\n");
-        manage_client_process(msg_queue_key, msq_id, &msq_status, &rmsg);
+        manage_client_process(msg_queue_key, msq_id, sem_id, &msq_status, &rmsg);
+        exit(0);
     }
 
     // Remove the message queue
@@ -67,8 +66,6 @@ void server(key_t msg_queue_key, pid_t client_handler_pid, int msq_id, struct my
         }
         else
         {
-            printf("MTYPE RECEIVED: %ld", rmsg->mtype);
-
             if ((client_handler_pid = fork()) < 0)
             {
                 perror("Client fork failed.\n");

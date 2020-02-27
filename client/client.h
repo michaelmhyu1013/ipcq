@@ -23,8 +23,15 @@
 
 #define ID 824
 
+typedef struct
+{
+    int p_id;
+    int msq_id;
+} Thread_Struct;
+
+void *client(void *client_info);
 void usage(char **argv);
 int open_queue(key_t keyval);
-void *client(void *client_info);
+// int read_first_response(Thread_Struct *ts, struct my_msg *rmsg);
 
 #endif

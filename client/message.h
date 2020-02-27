@@ -3,6 +3,7 @@
 
 #define MESSAGE_STRUCTURE_SIZE (4096 + sizeof(long))
 #define MAXMESSAGEDATA (4096 - sizeof(int) - sizeof(int) - sizeof(int)) /* don't want sizeof(Mesg) > 4096 */
+#define EOT 0x03
 
 struct my_msg
 {
