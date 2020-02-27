@@ -1,3 +1,50 @@
+
+/*------------------------------------------------------------------------------------------------------------------
+-- SOURCE FILE: client.c - An application that reads user input from the terminal and echoes back the contents
+--                              to the terminal window. It allows the user to translate the input following a certain
+--                              set of rules for special characters.
+--
+-- PROGRAM: ipcq
+--
+-- FUNCTIONS:
+--
+--              int main(void)
+--              void fatal(char *s)
+--              void clear_character_buffer(char *buf, size_t buffer_size)
+--
+-- DATE: Feb 24, 2020
+--
+-- REVISIONS: N/A
+--
+-- DESIGNER: Michael Yu
+--
+-- PROGRAMMER: Michael Yu
+--
+-- NOTES:
+-- This program constantly monitors user input from the terminal and echoes the exact input back to the console. All 
+-- built-in keyboard commands are disabled using the command:
+--
+--                  system("/bin/stty raw igncr -echo")
+--
+-- Special characters are handled differently following a certain set of guidelines, listed below:
+--                  'E'     - command to perform translation of user input based on following special characters
+--                  'a'     - character will be converted to 'z' upon translation
+--                  'X'     - character that will represent the BACKSPACE key upon translation
+--                  'K'     - character that will represent the LINE-KILL key upon translation
+--                  'T'     - character that will represent NORMAL TERMINATION of the program. The user input will be
+--                              translated prior to termination
+--                  'CTRL+k' - character that will represent ABNORMAL TERMINATION of the program. Application will
+--                              immediately exit and no echo or translation of user text will occur 
+--
+-- The application utilizies a simple fan architecture in constructing the three processes. The parent process is responsible
+-- for handling user input, and the two child processes are responsible for translation and terminal output. Upon any 
+-- error that occurs from reading or writing from the pipe, the program will automatically terminate and notify the user of
+-- the error that occured.
+--
+-- The application utilizes two pipes, one for transferring data from standard input to the output process. The second pipe
+-- is used to transfer translated data from the translation process to the output process.
+----------------------------------------------------------------------------------------------------------------------*/
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
@@ -13,7 +60,7 @@
 #include "semaphore.h"
 
 #define OPTIONS "?f:p:"
-int read_first_response(Thread_Struct *ts, struct my_msg *rmsg);
+
 int main(int argc, char **argv)
 {
     char *filename;
