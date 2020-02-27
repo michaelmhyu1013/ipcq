@@ -23,10 +23,8 @@
 
 #define ID 824
 
-void mqstat_print(key_t msg_queue_key, int msq_id, struct msqid_ds *mstat);
 void usage(char **argv);
-int send_message(int msq_id, struct my_msg *qbuf);
-int read_message(int msq_id, long type, struct my_msg *qbuf);
 int open_queue(key_t keyval);
+void *client(void *client_info);
 
 #endif

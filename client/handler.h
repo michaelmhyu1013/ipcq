@@ -20,5 +20,10 @@
 ----------------------------------------------------------------------------------------------------------------------*/
 #ifndef HANDLER_H
 #define HANDLER_H
+#include "message.h"
+#include <sys/ipc.h>
+#include <sys/msg.h>
+
+int manage_client_process(key_t msg_queue_key, int msq_id, struct msqid_ds *msq_status, struct my_msg *connect_msg);
 
 #endif

@@ -25,11 +25,7 @@
 
 #define ID 824
 
-void server(key_t msg_queue_key, int msq_id);
-
-void mqstat_print(key_t msg_queue_key, int msq_id, struct msqid_ds *mstat);
-int send_message(int msq_id, struct my_msg *qbuf);
-int read_message(int msq_id, long type, struct my_msg *qbuf);
+void server(key_t msg_queue_key, pid_t client_handler_pid, int msq_id, struct my_msg *rmsg);
 int open_queue(key_t keyval);
 
 #endif

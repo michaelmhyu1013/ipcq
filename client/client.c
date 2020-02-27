@@ -5,21 +5,35 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #include "message.h"
 #include "client.h"
+#include "io.h"
 
-#define OPTIONS "?p:"
+#define OPTIONS "?f:p:"
+
+typedef struct
+{
+    int p_id;
+    int msq_id;
+} Thread_Struct;
 
 int main(int argc, char **argv)
 {
     key_t msg_queue_key;
     struct msqid_ds msq_status;
-    struct my_msg rmsg, smsg;
+    struct my_msg rmsg, msg_filename;
+    pthread_t terminalOutputID;
 
-    int msq_id, opt, priority;
+    Thread_Struct *ts = malloc(sizeof(Thread_Struct));
 
-    if (argc != 3)
+    char *filename;
+    int msq_id, opt, this_pid, priority;
+
+    this_pid = getpid();
+
+    if (argc != 5)
     {
         usage(argv);
     }
@@ -28,6 +42,9 @@ int main(int argc, char **argv)
     {
         switch (opt)
         {
+        case 'f':
+            filename = optarg;
+            break;
         case 'p':
             priority = atoi(optarg);
             break;
@@ -53,70 +70,74 @@ int main(int argc, char **argv)
     {
         printf("msg queue id: %d\n", msq_id);
     }
+    msg_filename.mtype = 1;
+    msg_filename.priority = priority;
+    msg_filename.p_id = this_pid;
 
-    printf("%d\n", msg_queue_key);
-    printf("%d\n", priority);
+    printf("Message type: %ld\n", msg_filename.mtype);
+    printf("Priority: %d\n", msg_filename.priority);
+    printf("PID: %d\n", this_pid);
+    printf("Filename: %s\n", filename);
 
-    smsg.mtype = 1;
-    strcpy(smsg.msg_data, "Sending this message");
+    printf("Message p_id: %d\n", msg_filename.p_id);
+    strcpy(msg_filename.msg_data, filename);
 
-    if (send_message(msq_id, &smsg) == -1)
+    ts->p_id = msg_filename.p_id;
+    ts->msq_id = msq_id;
+
+    if (pthread_create(&terminalOutputID, NULL, client, (void *)ts) != 0)
+    {
+        fatal("Thread failed to create.");
+    }
+    if (send_message(msq_id, &msg_filename) == -1)
     {
         printf("Error sending message");
-    }
-    else
-    {
-        printf("Sent");
-    }
-
-    /*--- get status info -----------------*/
-    if (msgctl(msq_id, IPC_STAT, &msq_status) < 0)
-    {
-        perror("msgctl (get status)failed!");
         exit(3);
     }
-    mqstat_print(msg_queue_key, msq_id, &msq_status);
+    pthread_join(terminalOutputID, NULL);
+    free(ts);
 }
 
-/*--------- status info print function ---------*/
-void mqstat_print(key_t msg_queue_key, int msq_id, struct msqid_ds *mstat)
+void *client(void *client_info)
 {
-    /*-- call the library function ctime ----*/
-    char *ctime();
+    struct my_msg rmsg;
+    Thread_Struct *ts = (Thread_Struct *)client_info;
 
-    printf("\nKey %d, msq_id %d\n\n", msg_queue_key, msq_id);
-    printf("%d messages on queue\n\n", (int)mstat->msg_qnum);
-    printf("Last send by proc %d at %s\n",
-           mstat->msg_lspid, ctime(&(mstat->msg_stime)));
-    printf("Last recv by proc %d at %s\n",
-           mstat->msg_lrpid, ctime(&(mstat->msg_rtime)));
-}
-
-int send_message(int msq_id, struct my_msg *qbuf)
-{
-    int result, length;
-    length = strnlen(qbuf->msg_data, MAX_MSG_SIZE);
-    if ((result = msgsnd(msq_id, qbuf, length, IPC_NOWAIT)) == -1)
+    // check if server could read file before entering loop
+    if (read_message(ts->msq_id, ts->p_id, &rmsg) < 0)
     {
-        return (-1);
+        fatal("Failed to read first response\n");
     }
-    return result;
-}
-
-int read_message(int msq_id, long type, struct my_msg *qbuf)
-{
-    int result, length; // The length is essentially the size of the structure minus sizeof(mtype)
-    length = sizeof(struct my_msg) - sizeof(long);
-    if ((result = msgrcv(msq_id, qbuf, length, type, 0)) == -1)
+    if (rmsg.msg_data[0] == '|')
     {
-        return (-1);
+        printf("Server failed to read file name.\n");
+        exit(4);
     }
-    return (result);
+
+    printf("%s", rmsg.msg_data);
+
+    while (1)
+    {
+        if (read_message(ts->msq_id, ts->p_id, &rmsg) < 0)
+        {
+            fatal("Read from msg queue failed.\n");
+        }
+        else
+        {
+            if (rmsg.mesg_len == 0)
+            {
+                printf("\nExiting client...\n");
+                break;
+            }
+            printf("%s", rmsg.msg_data);
+        }
+    }
+    return 0;
 }
 
 // Usage Message
 void usage(char **argv)
 {
-    fprintf(stderr, "Usage: %s -p <priority_level> \n", argv[0]);
+    fprintf(stderr, "Usage: %s -f <filename> -p <priority_level> \n", argv[0]);
     exit(1);
 }

@@ -1,12 +1,16 @@
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
-#define MAX_MSG_SIZE 1024
+#define MESSAGE_STRUCTURE_SIZE (4096 + sizeof(long))
+#define MAXMESSAGEDATA (4096 - sizeof(int) - sizeof(int) - sizeof(int)) /* don't want sizeof(Mesg) > 4096 */
 
 struct my_msg
 {
     long mtype;
-    char msg_data[MAX_MSG_SIZE];
-};
+    int p_id;
+    int mesg_len;
+    int priority;
+    char msg_data[MAXMESSAGEDATA];
+} msg;
 
 #endif

@@ -8,6 +8,8 @@
 
 #include "message.h"
 #include "server.h"
+#include "io.h"
+#include "handler.h"
 
 int main(int argc, char *argv[])
 {
@@ -15,6 +17,7 @@ int main(int argc, char *argv[])
     struct msqid_ds msq_status;
     struct my_msg rmsg;
     int msq_id;
+    pid_t client_handler_pid;
 
     system("touch msgqueue.txt");
     if ((msg_queue_key = ftok("msgqueue.txt", 'B')) == -1)
@@ -37,14 +40,14 @@ int main(int argc, char *argv[])
     }
     mqstat_print(msg_queue_key, msq_id, &msq_status);
 
-    if (read_message(msq_id, 0, &rmsg) < 0)
+    server(msg_queue_key, client_handler_pid, msq_id, &rmsg);
+
+    if (client_handler_pid == 0)
     {
-        perror("Read message failed.");
+        printf("Child handler spawned\n");
+        manage_client_process(msg_queue_key, msq_id, &msq_status, &rmsg);
     }
-    else
-    {
-        printf("Message was: %s", rmsg.msg_data);
-    }
+
     // Remove the message queue
     if (msgctl(msq_id, IPC_RMID, 0) < 0)
     {
@@ -54,55 +57,27 @@ int main(int argc, char *argv[])
     exit(0);
 }
 
-void server(key_t msg_queue_key, int msq_id)
+void server(key_t msg_queue_key, pid_t client_handler_pid, int msq_id, struct my_msg *rmsg)
 {
     while (1)
     {
-        struct my_msg rmsg;
-        if (read_message(msq_id, 0, &rmsg) < 0)
+        if (read_message(msq_id, 1, rmsg) < 0)
         {
-            perror("Read message failed.");
+            perror("Read message failed. Client Handler will not be created.\n");
         }
         else
         {
-            printf("Message was: %s", rmsg.msg_data);
-            msgctl(msq_id, IPC_RMID, NULL);
+            printf("MTYPE RECEIVED: %ld", rmsg->mtype);
+
+            if ((client_handler_pid = fork()) < 0)
+            {
+                perror("Client fork failed.\n");
+            }
+            // CLIENT PROCESS
+            if (client_handler_pid == 0)
+            {
+                break;
+            }
         }
     }
-}
-
-/*--------- status info print function ---------*/
-void mqstat_print(key_t msg_queue_key, int msq_id, struct msqid_ds *mstat)
-{
-    /*-- call the library function ctime ----*/
-    char *ctime();
-
-    printf("\nKey %d, msq_id %d\n\n", msg_queue_key, msq_id);
-    printf("%d messages on queue\n\n", (int)mstat->msg_qnum);
-    printf("Last send by proc %d at %s\n",
-           mstat->msg_lspid, ctime(&(mstat->msg_stime)));
-    printf("Last recv by proc %d at %s\n",
-           mstat->msg_lrpid, ctime(&(mstat->msg_rtime)));
-}
-
-int send_message(int msq_id, struct my_msg *qbuf)
-{
-    int result, length;
-    length = strnlen(qbuf->msg_data, MAX_MSG_SIZE);
-    if ((result = msgsnd(msq_id, qbuf, length, 0)) == -1)
-    {
-        return (-1);
-    }
-    return result;
-}
-
-int read_message(int msq_id, long type, struct my_msg *qbuf)
-{
-    int result, length; // The length is essentially the size of the structure minus sizeof(mtype)
-    length = sizeof(struct my_msg) - sizeof(long) - sizeof(int);
-    if ((result = msgrcv(msq_id, qbuf, length, type, 0)) == -1)
-    {
-        return (-1);
-    }
-    return (result);
 }
