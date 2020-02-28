@@ -1,8 +1,64 @@
+/*------------------------------------------------------------------------------------------------------------------
+-- SOURCE FILE: handler.c - This file contains the functionality for the handler process for writing the file contents
+--                          of the specified file to the message queue. If the file cannot be read, the handler process
+--                          send a message to close the client process and the handler process. Upon finishing writing of
+--                          of the file, the handler will send a message containing an EOT to close the client and handler
+--                          process.
+--
+-- PROGRAM: ipcq
+--
+-- FUNCTIONS:
+--
+--                  int manage_client_process(key_t msg_queue_key, int msq_id, int sem_id, struct msqid_ds *msq_status, struct my_msg *connect_msg)
+--
+-- DATE: Feb 24, 2020
+--
+-- REVISIONS: N/A
+--
+-- DESIGNER: Michael Yu
+--
+-- PROGRAMMER: Michael Yu
+--
+-- NOTES:
+-- The client handler process must acquire the semaphore in order to write to the message queue. The amount of messages
+-- that is written to the client is dependent on the priority specified by the Client when the Client is first created.
+-- 
+-- The character '|' is used to denote the unsuccessful reading of a file name.
+-- The character EOT is used to denote the complete transmission of a file to the message queue.
+-- Both of these special characters will be read by the Client to cause the termination of the program.
+-- 
+----------------------------------------------------------------------------------------------------------------------*/
+
 #include <stdio.h>
 #include "handler.h"
 #include "io.h"
 #include "semaphore.h"
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: manage_client_process
+--
+-- DATE: Feb 23, 2020
+--
+-- REVISIONS: N/A
+--
+-- DESIGNER: Michael Yu
+--
+-- PROGRAMMER: Michael Yu
+--
+-- INTERFACE: int manage_client_process(key_t msg_queue_key, int msq_id, int sem_id, struct msqid_ds *msq_status, struct my_msg *connect_msg)
+--              msg_queue_key:      key of the message queue
+--              msq_id:             id of the message queue to write to
+--              sem_id:             id of the semaphore that controls the writing to the message queue
+--              connect_msg:        pointer to a struct that is sent to the message queue
+-- RETURNS: int
+--              0 upon successful termination of the program
+--
+-- NOTES:   The main function of the handler process that is spawn in response to a message received by the server
+--          from the client. Handles the closing of the client upon unsuccessful and successful reading of the filename
+--          and contents, respectively. The amount of times that a handler process writes to the message queue, prior to signalling the
+--          semaphore, is dependent on the priority of the client. 
+-- 
+----------------------------------------------------------------------------------------------------------------------*/
 int manage_client_process(key_t msg_queue_key, int msq_id, int sem_id, struct msqid_ds *msq_status, struct my_msg *connect_msg)
 {
     int priority, i;
