@@ -1,19 +1,50 @@
-/*--------- status info print function ---------*/
+/*------------------------------------------------------------------------------------------------------------------
+-- SOURCE FILE: io.c - All input and output functionalities related to the message queue are defined in this file. All
+--                     functions defined are wrapper functions around the necessary message queue read and write functions
+--                      to provide better error handling for the application.
+--
+-- PROGRAM: ipcq
+--
+-- FUNCTIONS:
+--
+--                      void fatal(char *s);
+--                      int send_message(int msq_id, struct my_msg *qbuf);
+--                      int read_message(int msq_id, long type, struct my_msg *qbuf);
+--
+-- DATE: Feb 22, 2020
+--
+-- REVISIONS: N/A
+--
+-- DESIGNER: Michael Yu
+--
+-- PROGRAMMER: Michael Yu
+--
+-- NOTES:
+--
+----------------------------------------------------------------------------------------------------------------------*/
+
 #include "io.h"
 
-void mqstat_print(key_t msg_queue_key, int msq_id, struct msqid_ds *mstat)
-{
-    /*-- call the library function ctime ----*/
-    char *ctime();
-
-    printf("\nKey %d, msq_id %d\n\n", msg_queue_key, msq_id);
-    printf("%d messages on queue\n\n", (int)mstat->msg_qnum);
-    printf("Last send by proc %d at %s\n",
-           mstat->msg_lspid, ctime(&(mstat->msg_stime)));
-    printf("Last recv by proc %d at %s\n",
-           mstat->msg_lrpid, ctime(&(mstat->msg_rtime)));
-}
-
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: send_message
+--
+-- DATE: Feb 23, 2020
+--
+-- REVISIONS: N/A
+--
+-- DESIGNER: Michael Yu
+--
+-- PROGRAMMER: Michael Yu
+--
+-- INTERFACE: int send_message(int msq_id, struct my_msg *qbuf)
+--                      msq_id:     int value of the message queue id
+--                      qbuf:       pointer to the structure that contains the message to be sent to the message queue
+--
+-- RETURNS: void.
+--
+-- NOTES:   Wrapper function that writes messages to the specified message queue.   
+--
+----------------------------------------------------------------------------------------------------------------------*/
 int send_message(int msq_id, struct my_msg *qbuf)
 {
     int result, length;
@@ -26,9 +57,30 @@ int send_message(int msq_id, struct my_msg *qbuf)
     return result;
 }
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: read_message
+--
+-- DATE: Feb 23, 2020
+--
+-- REVISIONS: N/A
+--
+-- DESIGNER: Michael Yu
+--
+-- PROGRAMMER: Michael Yu
+--
+-- INTERFACE: int read_message(int msq_id, long type, struct my_msg *qbuf)
+--                      msq_id:     int value of the message queue id
+--                      type:       long representing the mtype of the message to be read
+--                      qbuf:       pointer to the structure that contains the message to be read from the message queue
+--
+-- RETURNS: void.
+--
+-- NOTES:   Wrapper function that reads messages from the specified message queue.   
+--
+----------------------------------------------------------------------------------------------------------------------*/
 int read_message(int msq_id, long type, struct my_msg *qbuf)
 {
-    int result, length; // The length is essentially the size of the structure minus sizeof(mtype)
+    int result, length;
     length = MESSAGE_STRUCTURE_SIZE;
     if ((result = msgrcv(msq_id, qbuf, length, type, 0)) == -1)
     {
