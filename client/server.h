@@ -1,15 +1,16 @@
-
 /*------------------------------------------------------------------------------------------------------------------
--- HEADER FILE:		input.h - This file provides all methods related to capturing user input from
---                              the terminal
+-- HEADER FILE:		server.h - This file provides all functionality related to a Server process that accesses the shared
+--                              message queue object. It creates a semaphore that manages the handler processes and the
+--                              access to writing the messages to the message queue.
 --
--- PROGRAM:			translator
+-- PROGRAM:			ipcq
 --
 -- FUNCTIONS:
---                  void write_from_input(int *pipe, int *pipe2, size_t buffer_size)
---                  void write_to_translate_pipe(int *pipe, char *buffer, size_t buffer_size, int *counter)
+--                  int main(void);
+--                  int open_queue(key_t keyval);
+--                  void server(key_t msg_queue_key, pid_t client_handler_pid, int msq_id, struct my_msg *rmsg);
 --
--- DATE:			Jan 22, 2020
+-- DATE:			Feb 22, 2020
 --
 -- REVISIONS:       (N/A)
 --
@@ -25,7 +26,8 @@
 
 #define ID 824
 
-void server(key_t msg_queue_key, pid_t client_handler_pid, int msq_id, struct my_msg *rmsg);
+int main(void);
 int open_queue(key_t keyval);
+void server(key_t msg_queue_key, pid_t client_handler_pid, int msq_id, struct my_msg *rmsg);
 
 #endif

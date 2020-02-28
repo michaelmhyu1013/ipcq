@@ -1,15 +1,17 @@
 
 /*------------------------------------------------------------------------------------------------------------------
--- HEADER FILE:		input.h - This file provides all methods related to capturing user input from
---                              the terminal
+-- HEADER FILE:		client.h - This file provides all functionality related to a Client process that accesses and shared
+--                              message queue object.
 --
 -- PROGRAM:			translator
 --
 -- FUNCTIONS:
---                  void write_from_input(int *pipe, int *pipe2, size_t buffer_size)
---                  void write_to_translate_pipe(int *pipe, char *buffer, size_t buffer_size, int *counter)
+--                  void *client(void *client_info);
+--                  void usage(char **argv);
+--                  int open_queue(key_t keyval);
+--                  int read_first_response(Thread_Struct *ts, struct my_msg *rmsg);
 --
--- DATE:			Jan 22, 2020
+-- DATE:			Feb 24, 2020
 --
 -- REVISIONS:       (N/A)
 --

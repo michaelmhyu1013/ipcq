@@ -12,7 +12,7 @@
 #include "server.h"
 #include "semaphore.h"
 
-int main(int argc, char *argv[])
+int main(void)
 {
     key_t msg_queue_key;
     struct msqid_ds msq_status;

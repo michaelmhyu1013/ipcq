@@ -1,16 +1,19 @@
 
 /*------------------------------------------------------------------------------------------------------------------
--- SOURCE FILE: client.c - An application that reads user input from the terminal and echoes back the contents
---                              to the terminal window. It allows the user to translate the input following a certain
---                              set of rules for special characters.
+-- SOURCE FILE: client.c - An application that allows a user to write a filename to an existing message queue. If the
+--                          file can be found by the corresponding server application, the file will be opened by the
+--                          server and written to the message queue. The client will read messages from the queue, listening
+--                          for messages with mtype equal to the Client's PID. Concurrent clients can be run and the priority
+--                          level specified will dictate the speed in which the Client will receive messages.
 --
 -- PROGRAM: ipcq
 --
 -- FUNCTIONS:
 --
---              int main(void)
---              void fatal(char *s)
---              void clear_character_buffer(char *buf, size_t buffer_size)
+--                  void *client(void *client_info);
+--                  void usage(char **argv);
+--                  int open_queue(key_t keyval);
+--                  int read_first_response(Thread_Struct *ts, struct my_msg *rmsg);
 --
 -- DATE: Feb 24, 2020
 --
@@ -21,30 +24,21 @@
 -- PROGRAMMER: Michael Yu
 --
 -- NOTES:
--- This program constantly monitors user input from the terminal and echoes the exact input back to the console. All 
--- built-in keyboard commands are disabled using the command:
+-- The client application can be compiled with the command:                 make ipcqc
+-- The client can be ran with the following flags:
+--              -f: specifies the filename for the server to open
+--              -p: specifies the priority of the Client
 --
---                  system("/bin/stty raw igncr -echo")
+-- The server application can be compiled with the command:                 make ipcqs
+-- 
+-- Ensure that the server is running prior to the client, or the message queue will not be created, which is required
+-- for the transfer of messages.
 --
--- Special characters are handled differently following a certain set of guidelines, listed below:
---                  'E'     - command to perform translation of user input based on following special characters
---                  'a'     - character will be converted to 'z' upon translation
---                  'X'     - character that will represent the BACKSPACE key upon translation
---                  'K'     - character that will represent the LINE-KILL key upon translation
---                  'T'     - character that will represent NORMAL TERMINATION of the program. The user input will be
---                              translated prior to termination
---                  'CTRL+k' - character that will represent ABNORMAL TERMINATION of the program. Application will
---                              immediately exit and no echo or translation of user text will occur 
---
--- The application utilizies a simple fan architecture in constructing the three processes. The parent process is responsible
--- for handling user input, and the two child processes are responsible for translation and terminal output. Upon any 
--- error that occurs from reading or writing from the pipe, the program will automatically terminate and notify the user of
--- the error that occured.
---
--- The application utilizes two pipes, one for transferring data from standard input to the output process. The second pipe
--- is used to transfer translated data from the translation process to the output process.
+-- The program will echo all messages read from the mesage queue with mtype equal to this Client's PID to the terminal 
+-- window. The user can specificy the priority of the Client process. The priority can only be positive, and the larger
+-- the value, the greater the priority of the client. Greater priority means a larger number of messages will be written
+-- to the message queue by the server for the specific Client, so that the transfer of data is faster.
 ----------------------------------------------------------------------------------------------------------------------*/
-
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
@@ -61,6 +55,31 @@
 
 #define OPTIONS "?f:p:"
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: main
+--
+-- DATE: Feb 22, 2020
+--
+-- REVISIONS: N/A
+--
+-- DESIGNER: Michael Yu
+--
+-- PROGRAMMER: Michael Yu
+--
+-- INTERFACE: int main(void)
+--
+-- RETURNS: int
+--              0 upon successful termination of the program
+--
+-- NOTES:   Acts as the driver of the program and is responsible for the creation of the child process. The Client will
+--          attempt to open the message queue that is created by the server, else exits. The filename specified by the 
+--          -f flag during client execution will be written to the message queue.
+--
+--          The client then enters a listening mode and will read all messages from the queue with mtype equal to this 
+--          Client's PID. If the filename cannot be open, the Client will exit. Else, the contents of the file will be
+--          written to the terminal screen as it is read off the message queue.
+-- 
+----------------------------------------------------------------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
     char *filename;
@@ -127,6 +146,26 @@ int main(int argc, char **argv)
     free(ts);
 }
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: client
+--
+-- DATE: Feb 26, 2020
+--
+-- REVISIONS: N/A
+--
+-- DESIGNER: Michael Yu
+--
+-- PROGRAMMER: Michael Yu
+--
+-- INTERFACE: void *client(void *client_info)
+--
+-- RETURNS:   void
+--
+-- NOTES:   Thread function that performs reading from the message queue and printing to the terminal window. The function
+--          keeps a running count of the message length received from the server and exits upon receiving an EOT, printing 
+--          the total length of data read from the queue.
+-- 
+----------------------------------------------------------------------------------------------------------------------*/
 void *client(void *client_info)
 {
     struct my_msg rmsg;
@@ -164,6 +203,27 @@ void *client(void *client_info)
     return 0;
 }
 
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: read_first_response
+--
+-- DATE: Feb 27, 2020
+--
+-- REVISIONS: N/A
+--
+-- DESIGNER: Michael Yu
+--
+-- PROGRAMMER: Michael Yu
+--
+-- INTERFACE: int read_first_response(Thread_Struct *ts, struct my_msg *rmsg)
+--               ts:    struct that holds the PID and message queue ID required for reading
+--               rmsg:  struct that represents the message to be sent to the message queue
+-- RETURNS:   int
+--               0 upon successfully reading a message containing the files contents, else -1 if it reads the character '|'
+--
+-- NOTES:   Reads the first message from the server to ensure that the filename is valid
+-- 
+----------------------------------------------------------------------------------------------------------------------*/
 int read_first_response(Thread_Struct *ts, struct my_msg *rmsg)
 {
     if (read_message(ts->msq_id, ts->p_id, rmsg) < 0)
@@ -177,6 +237,25 @@ int read_first_response(Thread_Struct *ts, struct my_msg *rmsg)
     return 0;
 }
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: usage
+--
+-- DATE: Feb 24, 2020
+--
+-- REVISIONS: N/A
+--
+-- DESIGNER: Michael Yu
+--
+-- PROGRAMMER: Michael Yu
+--
+-- INTERFACE: void usage(char **argv)
+--                  argv: pointer to an array of character buffers that represent the command line arguments
+-- 
+-- RETURNS:   void
+--
+-- NOTES:   Prints the proper usage of the function to the terminal window.
+-- 
+----------------------------------------------------------------------------------------------------------------------*/
 void usage(char **argv)
 {
     fprintf(stderr, "Usage: %s -f <filename> -p <priority_level> \n", argv[0]);
