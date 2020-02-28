@@ -1,6 +1,25 @@
-
-/* Semaphore creation and initialization function */
-
+/*------------------------------------------------------------------------------------------------------------------
+-- SOURCE FILE: semaphore.c - File that holds all functions related to create and control a semaphore.
+--
+-- PROGRAM: ipcq
+--
+-- FUNCTIONS:
+--
+--                  int initsem(key_t key);
+--                  void wait(int sid);  
+--                  void signal(int sid); 
+--
+-- DATE: Feb 26, 2020
+--
+-- REVISIONS: N/A
+--
+-- DESIGNER: Michael Yu
+--
+-- PROGRAMMER: Michael Yu
+--
+-- NOTES:
+--
+----------------------------------------------------------------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -11,6 +30,26 @@
 
 extern int errno;
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: initsem
+--
+-- DATE: Feb 23, 2020
+--
+-- REVISIONS: N/A
+--
+-- DESIGNER: Michael Yu
+--
+-- PROGRAMMER: Michael Yu
+--
+-- INTERFACE: int initsem(key_t key)
+--                          key: key value to initialize the semaphore with
+--
+-- RETURNS: int
+--              the semaphore ID if the semaphore is created, else -1
+--
+-- NOTES:   Wrapper function that creates the semaphore, else returns the existing semaphore.   
+--
+----------------------------------------------------------------------------------------------------------------------*/
 int initsem(key_t key)
 {
     int sid, status = 0;
@@ -31,7 +70,26 @@ int initsem(key_t key)
         return (sid);
 }
 
-void wait(int sid) /* acquire semophore */
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: send_message
+--
+-- DATE: Feb 23, 2020
+--
+-- REVISIONS: N/A
+--
+-- DESIGNER: Michael Yu
+--
+-- PROGRAMMER: Michael Yu
+--
+-- INTERFACE: void wait(int sid) 
+--                  sid:   key_t representing the id of the semaphore
+--
+-- RETURNS: void.
+--
+-- NOTES:   Wrapper function that writes messages to the specified message queue.   
+--
+----------------------------------------------------------------------------------------------------------------------*/
+void wait(int sid) 
 {
     struct sembuf *sembuf_ptr;
 
@@ -44,7 +102,26 @@ void wait(int sid) /* acquire semophore */
         printf("semop error\n");
 }
 
-void signal(int sid) /* release semaphore */
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: signal
+--
+-- DATE: Feb 23, 2020
+--
+-- REVISIONS: N/A
+--
+-- DESIGNER: Michael Yu
+--
+-- PROGRAMMER: Michael Yu
+--
+-- INTERFACE: void signal(int sid)
+--                  sid:   key_t representing the id of the semaphore
+--
+-- RETURNS: void.
+--
+-- NOTES:   Wrapper function that writes messages to the specified message queue.   
+--
+----------------------------------------------------------------------------------------------------------------------*/
+void signal(int sid)
 {
     struct sembuf *sembuf_ptr;
 
