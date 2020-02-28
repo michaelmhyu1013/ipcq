@@ -1,4 +1,3 @@
-
 /*------------------------------------------------------------------------------------------------------------------
 -- SOURCE FILE: client.c - An application that allows a user to write a filename to an existing message queue. If the
 --                          file can be found by the corresponding server application, the file will be opened by the
@@ -34,6 +33,7 @@
 -- Ensure that the server is running prior to the client, or the message queue will not be created, which is required
 -- for the transfer of messages.
 --
+-- The initial message that the client sends will always have a mtype equal to 1, as the server only listens this type.
 -- The program will echo all messages read from the mesage queue with mtype equal to this Client's PID to the terminal 
 -- window. The user can specificy the priority of the Client process. The priority can only be positive, and the larger
 -- the value, the greater the priority of the client. Greater priority means a larger number of messages will be written

@@ -1,3 +1,32 @@
+/*------------------------------------------------------------------------------------------------------------------
+-- SOURCE FILE: server.c - An application that creates a message queue and reads all messages from the queue. 
+--                          The server will parse the data within the message for a valid file name that can be 
+--                          opened to read. If the file is valid, a child process will be spawned to handle the opening
+--                          of the file and writing the contents of the file to the message queue with the mtype equal
+--                          to the Client's PID that initially wrote the filename to the queue.
+--
+-- PROGRAM: ipcq
+--
+-- FUNCTIONS:
+--
+--                  int main(void);
+--                  int open_queue(key_t keyval);
+--                  void server(key_t msg_queue_key, pid_t client_handler_pid, int msq_id, struct my_msg *rmsg);
+--
+-- DATE: Feb 24, 2020
+--
+-- REVISIONS: N/A
+--
+-- DESIGNER: Michael Yu
+--
+-- PROGRAMMER: Michael Yu
+--
+-- NOTES:
+-- The server will listen indefinitely for messages in the message queue with mtype equal to 1. If a valid filename is
+-- specified by the data contained in the message, a client handler process will be spawned to write the contents of the
+-- file to the queue.
+----------------------------------------------------------------------------------------------------------------------*/
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
@@ -12,6 +41,27 @@
 #include "server.h"
 #include "semaphore.h"
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: main
+--
+-- DATE: Feb 22, 2020
+--
+-- REVISIONS: N/A
+--
+-- DESIGNER: Michael Yu
+--
+-- PROGRAMMER: Michael Yu
+--
+-- INTERFACE: int main(void)
+--
+-- RETURNS: int
+--              0 upon successful termination of the program
+--
+-- NOTES:   Acts as the driver of the program and creates a server that listens to messages in the message queue with
+--          mtype equal to 1. The message queue is created in this function and exits upon unsuccessful creation.
+--          The semaphore is created in this function and controls the writing by the handler processes.
+-- 
+----------------------------------------------------------------------------------------------------------------------*/
 int main(void)
 {
     key_t msg_queue_key;
@@ -56,6 +106,28 @@ int main(void)
     exit(0);
 }
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: server
+--
+-- DATE: Feb 22, 2020
+--
+-- REVISIONS: N/A
+--
+-- DESIGNER: Michael Yu
+--
+-- PROGRAMMER: Michael Yu
+--
+-- INTERFACE: void server(key_t msg_queue_key, pid_t client_handler_pid, int msq_id, struct my_msg *rmsg)
+--                  msg_queue_key:      key value of the message queue
+--                  client_handler_pid: PID value of the child process that is spawned
+--                  msq_id:             id of the message queue
+--                  rmsg:               struct of the message to be received by the client
+-- RETURNS: void
+--
+-- NOTES:   Executes a forever loop that listens for messages of type 1 on the message queue. If a valid message is read,
+--          the server will spawn a child process to handle the file operations.
+-- 
+----------------------------------------------------------------------------------------------------------------------*/
 void server(key_t msg_queue_key, pid_t client_handler_pid, int msq_id, struct my_msg *rmsg)
 {
     while (1)
