@@ -33,7 +33,7 @@
 #include "handler.h"
 #include "io.h"
 #include "semaphore.h"
-
+#include <time.h>
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: manage_client_process
 --
@@ -66,6 +66,7 @@ int manage_client_process(key_t msg_queue_key, int msq_id, int sem_id, struct ms
     char *buffer = NULL;
     FILE *fptr;
     size_t offset, len, msg_len;
+    clock_t t;
 
     // Create handler for client
     printf("Handler pid: \t\t%d\n", getpid());
@@ -98,6 +99,7 @@ int manage_client_process(key_t msg_queue_key, int msq_id, int sem_id, struct ms
     msg_len = MAXMESSAGEDATA;
 
     offset = 0;
+    t = clock();
     while (offset < bytes_read)
     {
         wait(sem_id);
@@ -115,8 +117,13 @@ int manage_client_process(key_t msg_queue_key, int msq_id, int sem_id, struct ms
         }
         signal(sem_id);
     }
+    t = clock() - t;
+    double time_taken = ((double)t/CLOCKS_PER_SEC);
 
-    control_message.msg_data[0] = EOT;
+
+    printf("Duration of transfer: %f seconds\n", time_taken * 10);
+
+    control_message.msg_data[0] =  EOT;
     if (send_message(msq_id, &control_message) == -1)
     {
         fatal("Failed to send closing message");
